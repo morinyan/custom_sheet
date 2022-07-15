@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        html,
+        body,
+        #box {
+            padding: 0;
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div id="box" style="border: 1px solid skyblue;width: 1000px;height:1000px;position:relative;">
+        <canvas id="board" style="width:1000px;height:1000px;" width="1000" height="1000"></canvas>
+    </div>
+</body>
+</html>
+<script>
+function strlen(str){
+    var len = 0;
+    for (var i=0; i<str.length; i++) { 
+        var c = str.charCodeAt(i); 
+        //单字节加1 
+        if ((c >= 0x0001 && c <= 0x007e) || (0xff60<=c && c<=0xff9f)) { 
+            len++; 
+        }else { 
+            len+=2; 
+        } 
+    } 
+    return len;
+}
+
+
+function draw(ctx, cell) {
+    ctx.beginPath()
+    ctx.strokeStyle = cell.color || 'skyblue';
+    ctx.strokeRect(cell.x, cell.y, cell.w, cell.h)
+
+    const fontSize = 16
+
+    if(cell.text) {
+        const len = strlen(cell.text)
+        ctx.font = `${fontSize}px serif`;
+        ctx.fillText(cell.text, cell.x + cell.w / 2 - (fontSize / 2 * (len / 2)), cell.y + cell.h / 2 + (fontSize / 2))
+    }
+
+    ctx.closePath()
+}
+
+function clearRect(ctx, cell) {
+    ctx.clearRect(cell.x, cell.y, cell.w, cell.h)
+}
+
+function getInputEl(x, y,cb = () => {}, name = 'input') {
+    const input = document.getElementById('input')
+
+    if (input instanceof Element) {
+        input.remove();
+    }
+    
+    const div = document.createElement(name)
+    div.id = 'input'
+    
+    Object.assign(div.style, {
+        'position': 'absolute',
+        'top': `${y}px`,
+        'left': `${x}px`,
+        'width': '120px',
+        'height': '30px',
+        'border': '1px solid blue',
+        'box-sizing': 'border-box',
+        'outline': 'none',
+    })
+
+
+    document.querySelector('#box').appendChild(div)
+
+    let _cb = cb || (() => {})
+
+    if (name === 'input') {
+        div.oninput = function() {
+            _cb(div.value)
+        }
+        div.focus()
+
+        div.onblur = function() {
+            _cb(div.value)
+            div.remove()
+        }
+    }
+}
+
+
+function createTable() {
+    data.forEach(cols => {
+        cols.forEach(cell => {
+            draw(ctx, cell)
+        })
+    })
+    // requestAnimationFrame(createTable)
+}
+
+class Cell {
+    constructor(options = {}) {
+        Object.assign(this, options)
+    }
+}
+
+let row = 60;
+let col = 10;
+let i = 0;
+let data = [];
+
+let h = 30;
+let w = 120;
+
+
+const canvas = document.querySelector('#board')
+let timer = null
+let idx = 0
+
+canvas.addEventListener('click', e => {
+    console.log('坐标:', { e, x: e.offsetX, y: e.offsetY })
+
+    const target = Object.assign({}, data[Math.floor(e.offsetX / 120)][Math.floor(e.offsetY / 30)])
+
+    target.color = ['red', 'green', 'blue'][Math.floor(Math.random() * 100) % 3]
+
+    // createTable()
+
+    // clearRect(ctx, target)
+    // createTable()
+    // draw(ctx, target)
+    idx++
+
+    if (timer) {
+
+        clearTimeout(timer)
+    }
+    
+    if (idx < 2) {
+        timer = setTimeout(() => {
+            getInputEl(target.x, target.y, 'div')
+            timer = null
+        }, 300)
+    }
+})
+
+
+canvas.addEventListener('dblclick', e => {
+    console.log('双击坐标:', { e, x: e.offsetX, y: e.offsetY })
+
+    const target = data[Math.floor(e.offsetX / 120)][Math.floor(e.offsetY / 30)]
+
+    getInputEl(target.x, target.y, (value) => {
+        target.text = value
+
+        console.log('编辑:', target)
+
+        clearRect(ctx, target)
+        draw(ctx, target)
+    })
+
+})
+
+
+const ctx = canvas.getContext('2d')
+
+const Colors = ['skyblue', 'pink', 'gray']
+
+while(i < col) {
+    let j = 0;
+    let dataCol = [];
+    while(j < row) {
+        const Random = Math.floor(Math.random() * 100)
+        const cell = new Cell({ x: i * w, y: j * h, w, h, color: 'silver' || Colors[Random % 3] })
+
+        cell.text = '测试'
+
+        dataCol.push(cell)
+        
+        j++;
+    }
+    data.push(dataCol)
+    i++;
+}
+
+console.log('数据:', data);
+requestAnimationFrame(createTable);
+
+</script>
