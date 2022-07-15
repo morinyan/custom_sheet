@@ -23,6 +23,7 @@
     </div>
 </body>
 </html>
+<script src="./contextmenu.js"></script>
 <script>
 function strlen(str){
     var len = 0;
@@ -37,7 +38,6 @@ function strlen(str){
     } 
     return len;
 }
-
 
 function draw(ctx, cell) {
     ctx.beginPath()
@@ -127,6 +127,8 @@ const canvas = document.querySelector('#board')
 let timer = null
 let idx = 0
 
+let menu = null
+
 canvas.addEventListener('click', e => {
     console.log('坐标:', { e, x: e.offsetX, y: e.offsetY })
 
@@ -171,6 +173,18 @@ canvas.addEventListener('dblclick', e => {
 
 })
 
+canvas.addEventListener('contextmenu', e => {
+    console.log('contextmenu:', e)
+    e.preventDefault()
+
+    if (menu instanceof ContextMenu) {
+        menu.destroy()
+    }
+
+    menu = new ContextMenu()
+    
+    menu.render('#box', { top: e.y, left: e.x })
+})
 
 const ctx = canvas.getContext('2d')
 
