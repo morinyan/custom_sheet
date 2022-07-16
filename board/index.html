@@ -10,6 +10,7 @@
   <div>
     <canvas id="canvas" width="800" height="600" style="width:800px;height:600px;border:1px solid blue;"></canvas>
   </div>
+  <div id="tools" style="display: flex;"></div>
 </body>
 </html>
 <script src="./webBoard.js"></script>
@@ -17,6 +18,24 @@
   // 实例化画板
   const boardCanvas = document.querySelector('#canvas')
   const board = new BoardWebClient({ canvas: boardCanvas, width: boardCanvas.clientWidth, height: boardCanvas.clientHeight })
+
+  for(let key in board.GRAPH_TYPE) {
+    ((key) => {
+      const div = document.createElement('div')
+      div.innerHTML = key
+      Object.assign(div.style, {
+        padding: '10px',
+        'margin-right': '10px',
+        'border-radius': '4px',
+        cursor: 'pointer',
+        border: '1px solid skyblue',
+      })
+      div.onclick = function() {
+        board.switchGraph(key)
+      }
+      document.querySelector('#tools').appendChild(div)
+    })(key)
+  }
     
   // 登录成功，启动画板监听
   board.observer({

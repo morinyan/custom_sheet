@@ -29,6 +29,9 @@ class BoardWebClient {
       'RECT': 'RECT',
       'LINE': 'LINE',
       'PENCIL': 'PENCIL',
+      'CIRCLE': 'CIRCLE',
+      // 'ARROW': 'ARROW',
+      // 'TRIANGLE': 'TRIANGLE',
     }
 
     this.canvas = options.canvas
@@ -36,7 +39,7 @@ class BoardWebClient {
     this.width = options.width
     this.height = options.height
 
-    this.graphType = 'PENCIL'
+    this.graphType = 'CIRCLE'
     this.currentGraph = null
     this.graphs = []
 
@@ -81,6 +84,42 @@ class BoardWebClient {
     })
   }
 
+  drawArc(x1, y1, x2, y2) {
+    const { ctx, opts } = this
+
+    const xDiff = Math.abs(x2 - x1)
+    const yDiff = Math.abs(y2 - y1)
+
+    const x = x1 + xDiff / 2
+    const y = y1 + yDiff / 2
+
+    const r = Math.sqrt(xDiff**2 + yDiff**2) / 2
+
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, Math.PI * 2, false)
+    ctx.strokeStyle = opts.strokeStyle
+    ctx.lintWidth = opts.lintWidth
+    ctx.stroke()
+    ctx.closePath()
+  }
+
+  drawArrowLine(x1, y1, x2, y2) {
+    this.drawLine(x1, y1, x2, y2)
+    // this.drawtTriangle(x2, y2, 0, 0)
+  }
+
+  drawtTriangle(x1, y1, x2, y2) {
+    const { ctx, opts } = this
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.lineTo(x3, y3)
+    ctx.strokeStyle = opts.strokeStyle
+    ctx.lintWidth = opts.lintWidth
+    ctx.fill()
+    ctx.closePath()
+  }
+
   clearBoard(x, y, w, h) {
     this.ctx.clearRect(x, y, w, h)
   }
@@ -104,6 +143,30 @@ class BoardWebClient {
 
     if (graph.type === 'PENCIL') {
       this.drawPencil(graph.points)
+    }
+
+    if (graph.type === 'CIRCLE') {
+      const len = graph.points.length
+      const start = graph.points[0]
+      const last = graph.points[len - 1]
+
+      this.drawArc(start.x, start.y, last.x, last.y)
+    }
+
+    if (graph.type === 'ARROW') {
+      const len = graph.points.length
+      const start = graph.points[0]
+      const last = graph.points[len - 1]
+
+      this.drawArrowLine(start.x, start.y, last.x, last.y)
+    }
+
+    if (graph.type === 'TRIANGLE') {
+      const len = graph.points.length
+      const start = graph.points[0]
+      const last = graph.points[len - 1]
+
+      this.drawtTriangle(start.x, start.y, last.x, last.y)
     }
 
   }
@@ -233,6 +296,14 @@ class BoardWebClient {
 
   switchGraph(type) {
     this.graphType = type
+  }
+
+  setStrokeStyle(strokeStyle) {
+    this.opts.strokeStyle = strokeStyle
+  }
+
+  setLintWidth(lintWidth) {
+    this.opts.lintWidth = lintWidth
   }
 
   observer(map) {
