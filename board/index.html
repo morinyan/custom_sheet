@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div>
+    <canvas id="canvas" width="800" height="600" style="width:800px;height:600px;border:1px solid blue;"></canvas>
+  </div>
+</body>
+</html>
+<script src="./webBoard.js"></script>
+<script>
+  // 实例化画板
+  const boardCanvas = document.querySelector('#canvas')
+  const board = new BoardWebClient({ canvas: boardCanvas, width: boardCanvas.clientWidth, height: boardCanvas.clientHeight })
+    
+  // 登录成功，启动画板监听
+  board.observer({
+    'mousedown': args => {
+      console.log('观察者<down>', { args })
+      debounce(() => {
+        // rtm.client.sendMessageToPeer({ text: JSON.stringify({})})
+        console.log('发送数据:', { args })
+      })
+    },
+    'mousemove': args => {
+      console.log('观察者<move>', { args })
+      debounce(() => {
+        // rtm.client.sendMessageToPeer({ text: JSON.stringify({})})
+        console.log('发送数据:', { args })
+      })
+      // rtm.client.sendMessageToPeer({ text: JSON.stringify({ type: 'RECT', position: { dateTime: new Date(), ...args} }) }, window.peerId)
+    },
+    'mouseup': args => {
+      console.log('观察者<up>', { args })
+      debounce(() => {
+        // rtm.client.sendMessageToPeer({ text: JSON.stringify({})})
+        console.log('发送数据:', { args })
+      })
+    },
+    'custom': args => {
+      console.log('观察者<custom>', { args })
+      debounce(() => {
+        // rtm.client.sendMessageToPeer({ text: JSON.stringify({})})
+        console.log('发送数据:', { args })
+      })
+      // if (args.type === 'CLEAR') {
+      //   rtm.client.sendMessageToPeer({ text: JSON.stringify({ type: 'CLEAR', position: { dateTime: new Date(), ...args} }) }, window.peerId)
+      // }
+    },
+  })
+
+
+  function debounce(fn, t = 16) {
+    let timer = null
+
+    return () => {
+      if (timer) {
+        return
+      }
+
+      timer = setTimeout(() => {
+        timer = null
+        fn()
+      }, t);
+    }
+  }
+</script>
