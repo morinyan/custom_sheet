@@ -7,8 +7,8 @@
   <title>Document</title>
 </head>
 <body>
-  <div>
-    <canvas id="canvas" width="800" height="600" style="width:800px;height:600px;border:1px solid blue;"></canvas>
+  <div id="box" style="box-sizing: border-box;border: 1px solid blue;padding:0;">
+    <canvas id="canvas" style="width:100%;height:100%;"></canvas>
   </div>
   <div id="tools" style="display: flex;"></div>
 </body>
@@ -16,60 +16,38 @@
 <script src="./webBoard.js"></script>
 <script>
   // 实例化画板
+  const box = document.getElementById("box")
   const boardCanvas = document.querySelector('#canvas')
-  const board = new BoardWebClient({ canvas: boardCanvas, width: boardCanvas.clientWidth, height: boardCanvas.clientHeight })
+  const board = new BoardWebClient({ canvas: boardCanvas, width: box.clientWidth, height: box.clientHeight })
 
-  for(let key in board.GRAPH_TYPE) {
-    ((key) => {
-      const div = document.createElement('div')
-      div.innerHTML = key
-      Object.assign(div.style, {
-        padding: '10px',
-        'margin-right': '10px',
-        'border-radius': '4px',
-        cursor: 'pointer',
-        border: '1px solid skyblue',
-      })
-      div.onclick = function() {
-        board.switchGraph(key)
-      }
-      document.querySelector('#tools').appendChild(div)
-    })(key)
+  window.onresize = function(e) {
+    const data = { width: box.clientWidth, height: box.clientHeight }
+    console.log('[尺寸变化]', data)
+    board.reSize(data)
   }
+
+  
+  let downFn = debounce((args) => {
+    console.log('<发送数据>', { args })
+  })
     
   // 登录成功，启动画板监听
   board.observer({
     'mousedown': args => {
-      console.log('观察者<down>', { args })
-      debounce(() => {
-        // rtm.client.sendMessageToPeer({ text: JSON.stringify({})})
-        console.log('发送数据:', { args })
-      })
+      console.log('<down>', { args })
+      downFn(args)
     },
     'mousemove': args => {
-      console.log('观察者<move>', { args })
-      debounce(() => {
-        // rtm.client.sendMessageToPeer({ text: JSON.stringify({})})
-        console.log('发送数据:', { args })
-      })
-      // rtm.client.sendMessageToPeer({ text: JSON.stringify({ type: 'RECT', position: { dateTime: new Date(), ...args} }) }, window.peerId)
+      console.log('<move>', { args })
+      downFn(args)
     },
     'mouseup': args => {
-      console.log('观察者<up>', { args })
-      debounce(() => {
-        // rtm.client.sendMessageToPeer({ text: JSON.stringify({})})
-        console.log('发送数据:', { args })
-      })
+      console.log('<up>', { args })
+      downFn(args)
     },
     'custom': args => {
-      console.log('观察者<custom>', { args })
-      debounce(() => {
-        // rtm.client.sendMessageToPeer({ text: JSON.stringify({})})
-        console.log('发送数据:', { args })
-      })
-      // if (args.type === 'CLEAR') {
-      //   rtm.client.sendMessageToPeer({ text: JSON.stringify({ type: 'CLEAR', position: { dateTime: new Date(), ...args} }) }, window.peerId)
-      // }
+      console.log('<custom>', { args })
+      downFn(args)
     },
   })
 
@@ -77,15 +55,36 @@
   function debounce(fn, t = 16) {
     let timer = null
 
-    return () => {
+    return (...args) => {
       if (timer) {
+        // clearTimeout(timer)
         return
       }
 
       timer = setTimeout(() => {
         timer = null
-        fn()
+        fn(...args)
       }, t);
     }
   }
+
+  function renderTools() {
+    for(let key in board.GRAPH_TYPE) {
+      ((key) => {
+        const div = document.createElement('div')
+        div.innerHTML = key
+        Object.assign(div.style, {
+          padding: '10px',
+          'margin-right': '10px',
+          'border-radius': '4px',
+          cursor: 'pointer',
+          border: '1px solid skyblue',
+        })
+        div.onclick = function() {
+          board.switchGraph(key)
+        }
+        document.querySelector('#tools').appendChild(div)
+      })(key)
+    }
+    }
 </script>

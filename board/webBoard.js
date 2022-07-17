@@ -39,7 +39,7 @@ class BoardWebClient {
     this.width = options.width
     this.height = options.height
 
-    this.graphType = 'CIRCLE'
+    this.graphType = 'RECT'
     this.currentGraph = null
     this.graphs = []
 
@@ -125,6 +125,10 @@ class BoardWebClient {
   }
 
   drawTargetGraph(graph) {
+    if(!(graph instanceof Graph)) {
+      return
+    }
+    
     if (graph.type === 'RECT') {
       const len = graph.points.length
       const start = graph.points[0]
