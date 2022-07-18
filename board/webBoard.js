@@ -46,6 +46,7 @@ class BoardWebClient {
     this.isDown = false
     this.observerMap = {}
     this.disabled = false
+    this.syncData = true
     
     this.init()
   }
@@ -136,8 +137,6 @@ class BoardWebClient {
     const xR = width / point.width
     const yR = height / point.height
 
-    console.log('<检查>', { point, width, height, xR, yR })
-
     return {...point, ...{ x: xR * point.x, y: yR * point.y }}      
   }
 
@@ -188,9 +187,9 @@ class BoardWebClient {
   }
 
   updateLastGraph() {
-    this.drawAllGraph()
-    // const len = this.graphs.length
-    // this.drawTargetGraph(this.graphs[len - 1])
+    // this.drawAllGraph()
+    const len = this.graphs.length
+    this.drawTargetGraph(this.graphs[len - 1])
   }
 
   updateCanvas({ width, height }) {
@@ -225,8 +224,9 @@ class BoardWebClient {
       // 点击清除画布
       // this.clearBoard(0, 0, this.width, this.height)
 
-      this.getHook('mousedown')({ pt })
-
+      if(this.syncData) {
+        this.getHook('mousedown')({ commandType: 'DRAW', graph: this.graphType, pt })
+      }
     })
   
     bindEvent(canvas, 'mousemove', e => {
@@ -239,12 +239,14 @@ class BoardWebClient {
         const pt = new Point('move', e.offsetX, e.offsetY, this.width, this.height, e)
         this.currentGraph.points.push(pt)
 
-        this.getHook('mousemove')({ pt })
+        if (this.syncData) {
+          this.getHook('mousemove')({ commandType: 'DRAW', graph: this.graphType, pt })
+        }
 
         // first:  clear board
         this.clearBoard(0, 0, this.width, this.height)
         
-        this.drawAllGraph()
+        // this.drawAllGraph()
         // second: draw graph
         this.realTimeDraw()
       }
@@ -263,16 +265,29 @@ class BoardWebClient {
         this.currentGraph = null
 
         this.isDown = false
-        this.getHook('mouseup')({ pt })
+        
+        if (this.syncData) {
+          this.getHook('mouseup')({ commandType: 'DRAW', graph: this.graphType, pt })
+        }
 
       }
     })
   }
   
-  bindMessageFromPeer(data, peerId) {
-    const pos = data.position
+  getRemoteMessage(data, peerId) {
+    // {
+    //   graph: GraphType,
+    //   pt: Point,
+    // }
+    console.log('[远端信息]:', { data, peerId })
 
-    console.log('远端信息:', { data, pos, peerId })
+    if (data.commandType === 'DRAW') {
+      this.drawRemoteGraph(data.graph, data.pt)
+    }
+
+    if (data.commandType === 'CLEAR') {
+      this.clearBoard(0, 0, this.width, this.height)
+    }
 
     // if (data.type === 'RECT') {
 
@@ -290,12 +305,39 @@ class BoardWebClient {
     // }
   }
 
+  drawRemoteGraph(graphType, pt) {
+    // 创建图形
+    if (pt.type === 'down') {
+      this.currentGraph = new Graph(graphType)
+    }
+
+    if (pt.type === 'move') {
+      // first:  clear board
+      this.clearBoard(0, 0, this.width, this.height)
+        
+      // this.drawAllGraph()
+      // second: draw graph
+      this.realTimeDraw()
+    }
+
+    this.currentGraph.points.push(pt)
+
+    if (pt.type === 'up') {
+      this.graphs.push(this.currentGraph)
+      this.currentGraph = null
+    }
+  }
+
   disabledBoard(disabled) {
     this.disabled = disabled
   }
 
   switchGraph(type) {
     this.graphType = type
+  }
+
+  setSyncData(syncData) {
+    this.syncData = syncData
   }
 
   setStrokeStyle(strokeStyle) {
