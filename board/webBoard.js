@@ -47,6 +47,7 @@ class BoardWebClient {
     this.observerMap = {}
     this.disabled = false
     this.syncData = true
+    this.destroyed = false
     
     this.init()
   }
@@ -219,79 +220,81 @@ class BoardWebClient {
     this.updateLastGraph()
   }
 
-  bindBoardEventHandler() {
-    const { bindEvent, canvas } = this
+  mousedownHandler(e) {
+    // 画板状态
+    if (this.destroyed || this.disabled) {
+      return
+    }
 
-    bindEvent(canvas,'mousedown', e => {
-      // 画板状态
-      if (this.disabled) {
-        return
-      }
+    this.isDown = true
 
-      this.isDown = true
+    this.currentGraph = new Graph(this.graphType)
+    const pt = new Point('down', e.offsetX, e.offsetY, this.width, this.height, e)
+    this.currentGraph.points.push(pt)
 
-      this.currentGraph = new Graph(this.graphType)
-      const pt = new Point('down', e.offsetX, e.offsetY, this.width, this.height, e)
+    // 点击清除画布
+    // this.clearBoard(0, 0, this.width, this.height)
+
+    if(this.syncData) {
+      this.getHook('mousedown')({ commandType: 'DRAW', graph: this.graphType, pt })
+    }
+  }
+
+  mousemoveHandler(e) {
+    // 画板状态
+    if (this.destroyed || this.disabled) {
+      return
+    }
+
+    if (this.isDown) {
+      const pt = new Point('move', e.offsetX, e.offsetY, this.width, this.height, e)
       this.currentGraph.points.push(pt)
 
-      // 点击清除画布
-      // this.clearBoard(0, 0, this.width, this.height)
-
-      if(this.syncData) {
-        this.getHook('mousedown')({ commandType: 'DRAW', graph: this.graphType, pt })
-      }
-    })
-  
-    bindEvent(canvas, 'mousemove', e => {
-      // 画板状态
-      if (this.disabled) {
-        return
+      if (this.syncData) {
+        this.getHook('mousemove')({ commandType: 'DRAW', graph: this.graphType, pt })
       }
 
-      if (this.isDown) {
-        const pt = new Point('move', e.offsetX, e.offsetY, this.width, this.height, e)
-        this.currentGraph.points.push(pt)
+      // first:  clear board
+      this.clearBoard(0, 0, this.width, this.height)
+      
+      // this.drawAllGraph()
+      // second: draw graph
+      this.realTimeDraw()
+    }
+  }
 
-        if (this.syncData) {
-          this.getHook('mousemove')({ commandType: 'DRAW', graph: this.graphType, pt })
-        }
+  mouseupHandler(e) {
+    // 画板状态
+    if (this.destroyed || this.disabled) {  
+      return
+    }
 
-        // first:  clear board
-        this.clearBoard(0, 0, this.width, this.height)
-        
-        // this.drawAllGraph()
-        // second: draw graph
-        this.realTimeDraw()
+    if(this.isDown) {
+      const pt = new Point('up', e.offsetX, e.offsetY, this.width, this.height, e)
+      this.currentGraph.points.push(pt)
+      this.graphs.push(this.currentGraph)
+      // this.currentGraph = null  // 全图形渲染
+
+      this.isDown = false
+      
+      if (this.syncData) {
+        this.getHook('mouseup')({ commandType: 'DRAW', graph: this.graphType, pt })
       }
-    })
-  
-    bindEvent(window, 'mouseup', e => {
-      // 画板状态
-      if (this.disabled) {  
-        return
-      }
 
-      if(this.isDown) {
-        const pt = new Point('up', e.offsetX, e.offsetY, this.width, this.height, e)
-        this.currentGraph.points.push(pt)
-        this.graphs.push(this.currentGraph)
-        // this.currentGraph = null  // 全图形渲染
+    }
+  }
 
-        this.isDown = false
-        
-        if (this.syncData) {
-          this.getHook('mouseup')({ commandType: 'DRAW', graph: this.graphType, pt })
-        }
+  bindBoardEventHandler() {
+    const { bindEvent, canvas } = this
+    bindEvent(canvas,'mousedown', this.mousedownHandler.bind(this))
+    bindEvent(canvas, 'mousemove', this.mousemoveHandler.bind(this))
+    bindEvent(window, 'mouseup', this.mouseupHandler.bind(this))
+  }
 
-      }
-    })
+  unBindBoardEventHandler() {
   }
   
   getRemoteMessage(data, peerId) {
-    // {
-    //   graph: GraphType,
-    //   pt: Point,
-    // }
     console.log('[远端信息]:', { data, peerId })
 
     if (data.commandType === 'DRAW') {
@@ -301,21 +304,6 @@ class BoardWebClient {
     if (data.commandType === 'CLEAR') {
       this.clearBoard(0, 0, this.width, this.height)
     }
-
-    // if (data.type === 'RECT') {
-
-    //   this.clearBoard(context, canvasW, canvasH)
-
-    //   const xR = canvasW / pos.width
-    //   const yR = canvasH / pos.height
-
-    //   this.drawRect(context, pos.x * xR, pos.y * yR, pos.w *xR, pos.h * yR)
-    
-    // }
-
-    // if (data.type === 'CLEAR') {
-    //   this.clearBoard(context, canvasW, canvasH)
-    // }
   }
 
   drawRemoteGraph(graphType, pt) {
@@ -369,8 +357,20 @@ class BoardWebClient {
     el.addEventListener(event, callback)
   }
 
+  unBindEvent(el, event, callback) {
+    el.removeEventListener(event, callback)
+  }
+
   getHook(name) {
     return this.observerMap[name] || (() => {})
+  }
+
+  destroy() {
+    // this.unBindBoardEventHandler()
+    this.graphs = null
+    this.canvas = null
+    this.ctx = null
+    this.destroyed = true
   }
 }
 
