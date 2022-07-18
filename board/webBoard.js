@@ -127,6 +127,11 @@ class BoardWebClient {
     this.ctx.clearRect(x, y, w, h)
   }
 
+  reset() {
+    this.clearBoard(0, 0, this.width, this.height)
+    this.currentGraph = null
+  }
+
   translatePoint(point) {
     if(!(point instanceof Point)) {
       console.error("point not supported")
@@ -187,9 +192,17 @@ class BoardWebClient {
   }
 
   updateLastGraph() {
+    // 队列扫描
     // this.drawAllGraph()
-    const len = this.graphs.length
-    this.drawTargetGraph(this.graphs[len - 1])
+
+    // 队列索引
+    // const len = this.graphs.length
+    // this.drawTargetGraph(this.graphs[len - 1])
+
+    // 当前图形
+    if (this.currentGraph) {
+      this.drawTargetGraph(this.currentGraph)
+    }
   }
 
   updateCanvas({ width, height }) {
@@ -262,7 +275,7 @@ class BoardWebClient {
         const pt = new Point('up', e.offsetX, e.offsetY, this.width, this.height, e)
         this.currentGraph.points.push(pt)
         this.graphs.push(this.currentGraph)
-        this.currentGraph = null
+        // this.currentGraph = null  // 全图形渲染
 
         this.isDown = false
         
@@ -324,7 +337,7 @@ class BoardWebClient {
 
     if (pt.type === 'up') {
       this.graphs.push(this.currentGraph)
-      this.currentGraph = null
+      // this.currentGraph = null // 全图形渲染
     }
   }
 

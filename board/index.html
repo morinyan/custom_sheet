@@ -12,8 +12,8 @@
   </div>
   <div id="tools" style="display: flex;"></div>
 
-  <div id="remote_box" style="position: fixed; bottom: 30px; right: 30px; width:400px;height: 225px;box-sizing: border-box;border: 1px solid green;padding:0;">
-    <canvas id="remote" style="width:100%;height:100%;"></canvas>
+  <div id="remote_box" style="width: 60%;box-sizing: border-box;border: 1px solid green;padding:0;">
+    <canvas id="remote_canvas" style="width:100%;height:100%;"></canvas>
   </div>
 </body>
 </html>
@@ -24,7 +24,9 @@
   const boardCanvas = document.querySelector('#canvas')
   const board = new BoardWebClient({ canvas: boardCanvas, width: box.clientWidth, height: box.clientWidth / ( 16 / 9) })
 
-  const remoteBoard = new BoardWebClient({ canvas: document.querySelector('#remote'), width: 400, height: 225 })
+  const remoteBox = document.getElementById("remote_box")
+  const remoteBoardCanvas = document.querySelector('#remote_canvas')
+  const remoteBoard = new BoardWebClient({ canvas: remoteBoardCanvas, width: remoteBox.clientWidth, height: remoteBox.clientWidth / ( 16 / 9) })
 
   remoteBoard.disabledBoard(true)
 
@@ -44,7 +46,7 @@
 
   let clearGraphFn = throttle(args => {
     console.log('<清除图形>', args)
-    board.clearBoard(0, 0, board.width, board.height)
+    board.reset()
     remoteBoard.getRemoteMessage({ commandType: 'CLEAR' }, 'test_123')
   })
     
