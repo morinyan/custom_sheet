@@ -79,7 +79,9 @@ class BoardWebClient {
 
   drawPencil(points) {
     points.reduce((start, last) => {
-      this.drawLine(start.x, start.y, last.x, last.y)
+      const _s = this.translatePoint(start)
+      const _l = this.translatePoint(last)
+      this.drawLine(_s.x, _s.y, _l.x, _l.y)
       return last
     })
   }
@@ -124,24 +126,35 @@ class BoardWebClient {
     this.ctx.clearRect(x, y, w, h)
   }
 
+  translatePoint(point) {
+    if(!(point instanceof Point)) {
+      console.error("point not supported")
+      return
+    }
+
+    const { width, height } = this
+    const xR = width / point.width
+    const yR = height / point.height
+
+    console.log('<检查>', { point, width, height, xR, yR })
+
+    return {...point, ...{ x: xR * point.x, y: yR * point.y }}      
+  }
+
   drawTargetGraph(graph) {
     if(!(graph instanceof Graph)) {
       return
     }
+
+    const len = graph.points.length
+    const start = this.translatePoint(graph.points[0])
+    const last = this.translatePoint(graph.points[len - 1])
     
     if (graph.type === 'RECT') {
-      const len = graph.points.length
-      const start = graph.points[0]
-      const last = graph.points[len - 1]
-
       this.drawRect(start.x, start.y, last.x - start.x, last.y - start.y)
     }
 
     if (graph.type === 'LINE') {
-      const len = graph.points.length
-      const start = graph.points[0]
-      const last = graph.points[len - 1]
-
       this.drawLine(start.x, start.y, last.x, last.y)
     }
 
@@ -150,26 +163,14 @@ class BoardWebClient {
     }
 
     if (graph.type === 'CIRCLE') {
-      const len = graph.points.length
-      const start = graph.points[0]
-      const last = graph.points[len - 1]
-
       this.drawArc(start.x, start.y, last.x, last.y)
     }
 
     if (graph.type === 'ARROW') {
-      const len = graph.points.length
-      const start = graph.points[0]
-      const last = graph.points[len - 1]
-
       this.drawArrowLine(start.x, start.y, last.x, last.y)
     }
 
     if (graph.type === 'TRIANGLE') {
-      const len = graph.points.length
-      const start = graph.points[0]
-      const last = graph.points[len - 1]
-
       this.drawtTriangle(start.x, start.y, last.x, last.y)
     }
 
@@ -187,8 +188,9 @@ class BoardWebClient {
   }
 
   updateLastGraph() {
-    const len = this.graphs.length
-    this.drawTargetGraph(this.graphs[len - 1])
+    this.drawAllGraph()
+    // const len = this.graphs.length
+    // this.drawTargetGraph(this.graphs[len - 1])
   }
 
   updateCanvas({ width, height }) {
@@ -203,12 +205,6 @@ class BoardWebClient {
     const h = this.height
     this.updateCanvas({ width, height })
     this.updateLastGraph()
-    this.scale(width / w, height / h)
-  }
-
-  scale(xR, yR) {
-    console.log('缩放:', { xR, yR })
-    this.ctx.scale(xR, yR)
   }
 
   bindBoardEventHandler() {
@@ -248,7 +244,7 @@ class BoardWebClient {
         // first:  clear board
         this.clearBoard(0, 0, this.width, this.height)
         
-        // this.drawAllGraph()
+        this.drawAllGraph()
         // second: draw graph
         this.realTimeDraw()
       }

@@ -7,7 +7,7 @@
   <title>Document</title>
 </head>
 <body>
-  <div id="box" style="box-sizing: border-box;border: 1px solid blue;padding:0;">
+  <div id="box" style="width: 100%;box-sizing: border-box;border: 1px solid blue;padding:0;">
     <canvas id="canvas" style="width:100%;height:100%;"></canvas>
   </div>
   <div id="tools" style="display: flex;"></div>
@@ -18,17 +18,23 @@
   // 实例化画板
   const box = document.getElementById("box")
   const boardCanvas = document.querySelector('#canvas')
-  const board = new BoardWebClient({ canvas: boardCanvas, width: box.clientWidth, height: box.clientHeight })
+  const board = new BoardWebClient({ canvas: boardCanvas, width: box.clientWidth, height: box.clientWidth / ( 16 / 9) })
+
+  renderTools()
 
   window.onresize = function(e) {
-    const data = { width: box.clientWidth, height: box.clientHeight }
+    const data = { width: box.clientWidth, height: box.clientWidth / ( 16 / 9) }
     console.log('[尺寸变化]', data)
     board.reSize(data)
   }
-
   
   let downFn = debounce((args) => {
     console.log('<发送数据>', { args })
+  })
+
+  let clearGraphFn = throttle(args => {
+    console.log('<清除图形>', args)
+    board.clearBoard(0, 0, board.width, board.height)
   })
     
   // 登录成功，启动画板监听
@@ -44,6 +50,7 @@
     'mouseup': args => {
       console.log('<up>', { args })
       downFn(args)
+      // clearGraphFn(args)
     },
     'custom': args => {
       console.log('<custom>', { args })
@@ -51,6 +58,20 @@
     },
   })
 
+  function throttle(fn, t = 5000) {
+    let timer = null
+
+    return (...args) => {
+      if (timer) {
+        clearTimeout(timer)
+      }
+
+      timer = setTimeout(() => {
+        timer = null
+        fn(...args)
+      }, t)
+    }
+  }
 
   function debounce(fn, t = 16) {
     let timer = null
