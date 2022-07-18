@@ -1,102 +1,149 @@
-class InstructionQueue {
-    constructor(len = 20) {
-      this.LEN = len
-      this.instructionQueue = []
-    }
-  
-    add(item) {
-      this.instructionQueue.push(item)
-      this.checkLen()
-    }
-  
-    checkLen() {
-      const len = this.instructionQueue.length
-      if (len > this.LEN) {
-        this.instructionQueue.shift()
-      }
-    }
+class Point {
+  constructor(type, x, y, width, height, e) {
+    this.type = type
+    this.x = x
+    this.y = y
+    this.width = width   // 画布宽度
+    this.height = height // 画布高度
+    this._origin = e
   }
-  
-  export class BoardMiniClient {
-    constructor(options = {}) {
-      this.queue = new InstructionQueue(20)
-      this.context = null
-      this.canvasW = 300
-      this.canvasH = 150
-      this.strokeStyle = 'red'
-      this.lintWidth = 2
-      this.opts = {}
-      Object.assign(this.opts, options)
-      this.canvasW = options.canvasW
-      this.canvasH = options.canvasH
-      this.context = options.context
-    }
-  
-    drawRect(x, y, w, h) {
-      const ctx = this.context
-      ctx.rect(x, y, w, h)
-      ctx.setStrokeStyle(this.strokeStyle)
-      ctx.stroke()
-      ctx.draw()
-    }
-  
-    clearBoard() {
-      const ctx = this.context
-      ctx.clearRect(0, 0, this.canvasW, this.canvasH)
-      ctx.draw()
-    }
-  
-    /**
-     * 监听RTM消息
-     * @param {String} message RTM接收的消息内容
-     * @param {String} peerId RTM接收的发送消息的userID
-     */
-    bindMessageFromPeer(data, peerId) {
-      const pos = data.position
-      const { context, canvasW, canvasH } = this
-  
-      if (this.checkInstruction(pos)) {
-        this.queue.add(pos)
-        
-        if (data.type === 'RECT') {
-          this.clearBoard(context, canvasW, canvasH)
-          const xR = canvasW / pos.width
-          const yR = canvasH / pos.height
-          this.drawRect(pos.x * xR, pos.y * yR, pos.w *xR, pos.h * yR)
-        }
-  
-        if (data.type === 'CLEAR') {
-          this.clearBoard(context, canvasW, canvasH)
-        }
-      }
-    }
-  
-    /**
-     * 检测指令
-     */
-    checkInstruction(pos) {
-      const len = this.length - 1
-      const lastItem = this.queue[len]
-  
-      if (lastItem) {
-        return new Date(pos.dateTime) > new Date(lastItem.dateTime)
-      }
-  
-      return true
-    }
-  }
-  
-  export default BoardMiniClient
+}
 
-const ctx = wx.createCanvasContext('board')
-const sysInfo = wx.getSystemInfoSync()
-const board = new BoardMiniClient({
-    context: ctx,
-    canvasW: sysInfo.windowWidth,
-    canvasH: sysInfo.windowHeight,
-})
-gData.rtm._eventBus.on('MessageFromPeer', (message, peerId, isOfflineMessage) => {
-    const data = JSON.parse(message.text)
-    console.log('P_TO_P MSG:', {message, peerId, isOfflineMessage, data})
-    board.bindMessageFromPeer(data, peerId)
-})
+class Graph {
+  constructor(type) {
+    this.type = type
+    this.points = []
+  }
+}
+
+class BoardMiniClient {
+  constructor(options = {}) {
+    this.opts = Object.assign({
+      strokeStyle: 'red',
+      lintWidth: 1,
+      clearBoardTime: 5000,
+      frameTime: 16,
+    }, options)
+
+    this.GRAPH_TYPE = {
+      'RECT': 'RECT',
+      'LINE': 'LINE',
+      'PENCIL': 'PENCIL',
+      'CIRCLE': 'CIRCLE',
+    }
+
+    // this.canvas = options.canvas
+    this.ctx = options.context
+    this.width = options.width
+    this.height = options.height
+
+    this.graphType = 'RECT'
+    this.currentGraph = null
+    this.graphs = []
+
+    this.isDown = false
+    this.disabled = false
+    this.syncData = true
+  }
+
+  drawRect(x, y, w, h) {
+    const { ctx, opts } = this
+    ctx.rect(x, y, w, h)
+    ctx.setStrokeStyle(opts.strokeStyle)
+    ctx.stroke()
+    ctx.draw()
+  }
+
+  clearBoard(x, y, w, h) {
+    this.ctx.clearRect(x, y, w, h)
+    this.ctx.draw()
+  }
+
+  reset() {
+    this.clearBoard(0, 0, this.width, this.height)
+    this.currentGraph = null
+  }
+
+  translatePoint(point) {
+    const { width, height } = this
+    const xR = width / point.width
+    const yR = height / point.height
+    return {...point, ...{ x: xR * point.x, y: yR * point.y }}      
+  }
+
+  drawTargetGraph(graph) {
+    if(!(graph instanceof Graph)) {
+      return
+    }
+    const len = graph.points.length
+    const start = this.translatePoint(graph.points[0])
+    const last = this.translatePoint(graph.points[len - 1])
+    
+    switch(graph.type) {
+      case 'RECT':
+        this.drawRect(start.x, start.y, last.x - start.x, last.y - start.y)
+        break;
+      default:
+        break;
+    }
+  }
+
+  drawAllGraph() {
+    for(let graph of this.graphs) {
+      this.drawTargetGraph(graph)
+    }
+  }
+
+  updateCurrentGraph() {
+    // 当前图形
+    if (this.currentGraph) {
+      this.drawTargetGraph(this.currentGraph)
+    }
+  }
+
+  updateCanvas({ width, height }) {
+    this.width = width
+    this.height = height
+  }
+
+  reSize({ width, height }) {
+    this.updateCanvas({ width, height })
+    this.updateCurrentGraph()
+  }
+
+  getRemoteMessage(data, peerId) {
+    switch(data.commandType) {
+      case 'DRAW':
+        this.drawRemoteGraph(data.graph, data.pt);
+        break;
+      case 'CLEAR':
+        this.reset();
+        break;
+      default:
+        break;
+    }
+  }
+
+  drawRemoteGraph(graphType, pt) {
+    // 创建图形
+    if (pt.type === 'down') {
+      this.currentGraph = new Graph(graphType)
+      this.graphs.push(this.currentGraph)
+    }
+
+    this.currentGraph.points.push(pt)
+
+    if (pt.type !== 'down') {
+      this.clearBoard(0, 0, this.width, this.height)
+      this.updateCurrentGraph()
+    }
+  }
+
+  destroy() {
+    this.graphs = null
+    this.ctx = null
+  }
+}
+
+export default BoardMiniClient
+
