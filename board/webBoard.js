@@ -16,6 +16,92 @@ class Graph {
   }
 }
 
+// 三角形
+function troandle(xa, ya, xb, yb) {
+  let FindX1, FindY1, FindX2, FindY2
+
+  if (Math.abs(xa - xb) < 0.0001 && Math.abs(ya - yb) < 0.0001) {
+    return false
+  }
+
+  let sideLength1 = (xa - xb)
+  let sideLength2 = (ya - yb)
+  let sideLength = Math.sqrt(sideLength1**2 + sideLength2**2)
+
+  let tempX, tempY
+  tempX = (xa + xb) / 2
+  tempY = (ya + yb) / 2
+
+  // 垂直状态
+  if (Math.abs(xa - xb) < 0.0001) {
+    FindY1 = tempY
+    FindY2 = tempY
+
+    let temp_len = Math.sqrt(3.0) / 2 * sideLength
+
+    FindX1 = tempX + temp_len
+    FindX2 = tempX - temp_len
+
+    return { FindX1: FindX2, FindY1: FindY2 }
+  }
+
+  // 水平状态
+  if (Math.abs(ya - yb) < 0.0001) {
+    FindX1 = tempX
+    FindX2 = tempX
+
+    let temp_len = Math.sqrt(3.0) / 2 * sideLength
+
+    FindY1 = tempY + temp_len
+    FindY2  = tempY - temp_len
+
+    return { FindX1: FindX2, FindY1: FindY2 }
+  }
+
+  // (0-1)的斜率状态
+  let k, k1
+  let b, b1
+
+  k = (yb - ya) / (xb - xa)
+  b = ya - k * xa
+
+  k1 = -1 / k
+  b1 = tempY - k1 * tempX
+
+  let db = 2 * k1 * (b1 - tempY) - 2 * tempX
+  let da = k1 * k1 + 1
+  let dc = tempX * tempX + (b1 - tempY) * (b1 - tempY) - (3.0 / 4) * sideLength * sideLength
+  let dx = db * db - 4 * da * dc
+
+  if (dx < 0) {
+    return false
+  }
+
+  dx = Math.sqrt(db * db - 4 * da * dc)
+
+  let x1, x2, y1, y2
+  x1 = (-db + dx) / (2 * da)
+  x2 = (-db - dx) / (2 * da)
+
+  y1 = x1 * k1 + b1
+  y2 = x2 * k1 + b1
+
+  if (y1 > tempY) {
+    FindX1 = x1
+    FindY1 = y1
+    FindX2 = x2
+    FindY2 = y2
+  } else {
+    FindX1 = x2
+    FindY1 = y2
+    FindX2 = x1
+    FindY2 = y1
+  }
+
+  return { FindX1: FindX2, FindY1: FindY2 }
+
+}
+
 class BoardWebClient {
   constructor(options = {}) {
     this.opts = Object.assign({
@@ -30,8 +116,8 @@ class BoardWebClient {
       'LINE': 'LINE',
       'PENCIL': 'PENCIL',
       'CIRCLE': 'CIRCLE',
-      // 'ARROW': 'ARROW',
-      // 'TRIANGLE': 'TRIANGLE',
+      'ARROW': 'ARROW',
+      'TRIANGLE': 'TRIANGLE',
     }
 
     this.canvas = options.canvas
@@ -109,18 +195,36 @@ class BoardWebClient {
 
   drawArrowLine(x1, y1, x2, y2) {
     this.drawLine(x1, y1, x2, y2)
-    // this.drawtTriangle(x2, y2, 0, 0)
+
+    const target = troandle(x1, y1, x2, y2)
+
+    if (!target) {
+      return
+    }
+
+    this.drawtTriangle(x2, y2, target.FindX1, target.FindY1)
   }
 
-  drawtTriangle(x1, y1, x2, y2) {
+  drawtTriangle(x1, y1, x2, y2, x3, y3) {
     const { ctx, opts } = this
+    // const x = bX + [L * (aY - bY)] / sqrt([aX - bX]^2 + [aY - bY]^2)
+    // const y = bY - [L * (aX - bX)] / sqrt([aX - bX]^2 + [aY - bY]^2)
+
+    // const x = bX - [L * (aY - bY)] / sqrt([aX - bX]^2 + [aY - bY]^2)
+    // const y = bY + [L * (aX - bX)] / sqrt([aX - bX]^2 + [aY - bY]^2)
+
+
+    // const x = x1 - (10 * (y2 - y1)) / Math.sqrt((x2 - x1)**2 + (y1 - y1)**2)
+    // const y = y1 + (10 * (x2 - x1)) / Math.sqrt((x2 - x1)**2 + (y1 - y1)**2)
+
     ctx.beginPath()
     ctx.moveTo(x1, y1)
     ctx.lineTo(x2, y2)
     ctx.lineTo(x3, y3)
+    ctx.lineTo(x1, y1)
     ctx.strokeStyle = opts.strokeStyle
     ctx.lintWidth = opts.lintWidth
-    ctx.fill()
+    ctx.stroke()
     ctx.closePath()
   }
 
@@ -176,7 +280,12 @@ class BoardWebClient {
     }
 
     if (graph.type === 'TRIANGLE') {
-      this.drawtTriangle(start.x, start.y, last.x, last.y)
+      const target = troandle(start.x, start.y, last.x, last.y)
+
+      if (!target) {
+        return
+      }
+      this.drawtTriangle(start.x, start.y, last.x, last.y, target.FindX1, target.FindY1)
     }
 
   }
