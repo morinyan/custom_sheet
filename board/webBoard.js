@@ -1,22 +1,17 @@
-class Point {
-    constructor(type, x, y, width, height, e) {
-      this.type = type
-      this.x = x
-      this.y = y
-      this.width = width   // 画布宽度
-      this.height = height // 画布高度
-      this._origin = e
-    }
-}
+function drawWraper(graph = () => {}, { ctx, type }) {
+  ctx.beginPath()
 
-class Graph {
-  constructor(type) {
-    this.type = type
-    this.points = []
+  graph()
+
+  if (type === 'fill') {
+    ctx.fill()
+  } else {
+    ctx.stroke()
   }
+
+  ctx.closePath()
 }
 
-// 三角形
 function troandle(xa, ya, xb, yb) {
   let FindX1, FindY1, FindX2, FindY2
 
@@ -100,6 +95,175 @@ function troandle(xa, ya, xb, yb) {
 
   return { FindX1: FindX2, FindY1: FindY2 }
 
+}
+
+class Point {
+    constructor(type, x, y, width, height, e) {
+      this.type = type
+      this.x = x
+      this.y = y
+      this.width = width   // 画布宽度
+      this.height = height // 画布高度
+      this._origin = e
+    }
+}
+
+class Graph {
+  constructor(type) {
+    this.type = type
+    this.points = []
+  }
+}
+
+class Painter{
+  constructor({ brush, board }) {
+    this.brush = brush
+    this.board = board
+  }
+
+  rect(ctx, x, y, w, h, type = 'stroke') {
+    drawWraper(() => {
+      ctx.rect(x, y, w, h)
+    }, { ctx, type })
+  }
+
+  line(ctx, x1, y1, x2, y2, type = 'stroke') {
+    drawWraper(() => {
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(x2, y2)
+    }, { ctx, type })
+  }
+
+  circle(ctx, x1, y1, x2, y2, type = 'stroke') {
+    drawWraper(() => {
+      const xDiff = Math.abs(x2 - x1)
+      const yDiff = Math.abs(y2 - y1)
+      const x = x1 + xDiff / 2
+      const y = y1 + yDiff / 2
+      const r = Math.sqrt(xDiff**2 + yDiff**2) / 2
+      this.arc(ctx, x, y, r, 2 * Math.PI)
+    }, { ctx, type })
+  }
+
+  arc(ctx, x, y, r, deg) {
+    ctx.arc(x, y, r, 0, deg, false)
+  }
+
+  triangle(ctx, x1, y1, x2, y2, x3, y3, type = 'stroke') {
+    drawWraper(() => {
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(x2, y2)
+      ctx.lineTo(x3, y3)
+      ctx.lineTo(x1, y1)
+    }, { ctx, type })
+  }
+}
+
+class PaintBrush {
+  constructor(lineWidth, lineColor) {
+    this.lineWidth = lineWidth
+    this.lineColor = lineColor
+    this.type = 'pencil' // 画笔类型
+  }
+
+  setLineColor(color) {
+    this.lineColor = color
+  }
+
+  setLintWidth(width) {
+    this.lineWidth = width
+  }
+}
+
+class PaintBoard{
+  constructor({ width, height }) {
+    this.id = 'UUID' + Date.now()
+    this.canvas = this.createCanvas(width, height)
+    this.ctx = canvas.getContext('2d')
+
+    // 监听画板尺寸
+    this.observerResize()
+    this.observerPosition()
+  }
+
+  createCanvas(width, height) {
+    const canvas = document.createElement('canvas')
+    Object.assign(canvas.style, { width: '100%', height: '100%' })
+    canvas.width = width
+    canvas.height = height
+    return canvas
+  }
+
+  observerResize() {
+    window.addEventListener('resize', () => {
+      this.reSize()
+    }, false)
+  }
+
+  reSize() {
+    this.canvas.width = this.canvas.clientWidth
+    this.canvas.height = this.canvas.clientHeight
+  }
+
+  observerPosition() {
+    const { canvas } = this
+    canvas.addEventListener('mousedown', e => {
+      console.log('%c <mousedown>', 'color: green;', { e })
+    })
+    canvas.addEventListener('mousemove', e => {
+      console.log('%c <mousemove>', 'color: green;', { e })
+    })
+    canvas.addEventListener('mouseup', e => {
+      console.log('%c <mouseup>', 'color: green;', { e })
+    })
+    canvas.addEventListener('mouseout', e => {
+      console.log('%c <mouseout>', 'color: green;', { e })
+    })
+  }
+}
+
+class WhiteBoard {
+  constructor(options = {}) {
+    const { el } = options
+    const width = el.clientWidth
+    const height = el.clientHeight
+
+    this.el = el
+    this.board = new PaintBoard({ width, height })
+    this.brush = new PaintBrush(2, '#FF0000')
+    this.painter = new Painter({
+      brush: this.brush,
+      board: this.board
+    })     
+    
+    this.render(this.board)
+  }
+
+  render(board) {
+    el.appendChild(board.canvas)
+  }
+}
+
+class CommandChannel {
+  constructor() { }
+
+  remoteListener() {
+
+  }
+
+  localListener() {
+
+  }
+
+  commandListener(command) {
+    switch (command) {
+      case 'add':
+        console.log('add board')
+        break
+      default:
+        break
+    }
+  }
 }
 
 class BoardWebClient {
