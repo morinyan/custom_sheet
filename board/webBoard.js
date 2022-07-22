@@ -245,7 +245,15 @@ class WhiteBoard {
 }
 
 class CommandChannel {
-  constructor() { }
+  constructor() {
+    // 消息结构
+    // {
+    //   id,
+    //   type,
+    //   code,
+    //   msg,
+    // }
+  }
 
   remoteListener() {
 
